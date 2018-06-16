@@ -1,7 +1,9 @@
+var rerendered = 0;
 var tags_map = {};
 var slug = require('github-slugid');
 var eol = require('os').EOL;
 var fs = require('fs');
+var color = require('bash-color');
 
 function replacer(tagsHtml, rendered) {
   return tagsHtml
@@ -119,7 +121,13 @@ module.exports = {
       var write = this.output.writeFile;
       var toUrl = this.output.toURL;
 
-      return this.book.renderBlock('markdown', content)
+      if (rerendered === 1) {
+        rerendered = 2;
+        console.log(color.red('warn: ') +
+          'Tags auto-regeneration disabled in gitbook-serve mode for more performance. Restart server for generating new tags page!');
+      }
+
+      return rerendered > 0 ? null : this.book.renderBlock('markdown', content)
         .then(function(rendered) {
           var tagsHtml = fs.readFileSync(output);
           var linked = rendered.replace(
@@ -127,6 +135,7 @@ module.exports = {
             function(_, link) {
               return 'a href="' + toUrl(link) + '"';
             })
+          rerendered = 1;
           return write('tags.html', replacer(tagsHtml, linked));
         });
     }
