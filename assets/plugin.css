@@ -13,7 +13,7 @@
 }
 
 .tags a:hover{
-  color: #fff;
+  color: #fff !important;
   text-decoration: none;
   background-color: #542982;
 }
