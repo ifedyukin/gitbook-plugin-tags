@@ -3,6 +3,18 @@ var slug = require('github-slugid');
 var eol = require('os').EOL;
 var fs = require('fs');
 
+function replacer(tagsHtml, rendered) {
+  return tagsHtml
+    .toString('utf8')
+    .replace(
+      /.section class="normal markdown-section"(.|\n)*\/section./,
+      "<section class=\"normal markdown-section\">" +
+      "<h1>Тэги</h1>" +
+      rendered +
+      "</section>"
+    );
+}
+
 module.exports = {
   book: {
     assets: './assets',
@@ -105,18 +117,17 @@ module.exports = {
 
       var output = this.output.resolve('tags.html');
       var write = this.output.writeFile;
+      var toUrl = this.output.toURL;
+
       return this.book.renderBlock('markdown', content)
         .then(function(rendered) {
           var tagsHtml = fs.readFileSync(output);
-          return write('tags.html', tagsHtml
-            .toString('utf8')
-            .replace(
-              /.section class="normal markdown-section"(.|\n)*\/section./,
-              "<section class=\"normal markdown-section\">" +
-              "<h1>Тэги</h1>" +
-              rendered +
-              "</section>"
-            ));
+          var linked = rendered.replace(
+            /a href=\"(.*)\"/ig,
+            function(_, link) {
+              return 'a href="' + toUrl(link) + '"';
+            })
+          return write('tags.html', replacer(tagsHtml, linked));
         });
     }
   }
