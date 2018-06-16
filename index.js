@@ -130,11 +130,15 @@ module.exports = {
       return rerendered > 0 ? null : this.book.renderBlock('markdown', content)
         .then(function(rendered) {
           var tagsHtml = fs.readFileSync(output);
-          var linked = rendered.replace(
-            /a href=\"(.*)\"/ig,
-            function(_, link) {
-              return 'a href="' + toUrl(link) + '"';
-            })
+          var linked = rendered
+            .replace(
+              /a href=\"(.*)\"/ig,
+              function(_, link) {
+                return 'a href="' + toUrl(link) + '"';
+              })
+            .replace(/<h2>(.*)<\/h2>/ig, function(_, text) {
+                return '<h2 id="' + slug(text) + '">' + text + '</h2>';
+              });
           rerendered = 1;
           return write('tags.html', replacer(tagsHtml, linked));
         });
