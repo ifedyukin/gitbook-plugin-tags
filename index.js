@@ -1,6 +1,7 @@
 var tags_map = {};
 var slug = require('github-slugid');
 var eol = require('os').EOL;
+var fs = require('fs');
 
 module.exports = {
   book: {
@@ -10,23 +11,12 @@ module.exports = {
     ]
   },
   hooks: {
+    "init": function() {
+      tags_map = {};
+    },
+
     "page:before": function(page) {
       if (this.output.name != 'website') return page;
-
-      if (page.path === 'tags.md') {
-        for (var key in tags_map) {
-          if (tags_map.hasOwnProperty(key)) {
-            var tag_header = eol.concat('## ', key, eol);
-            page.content = page.content.concat(tag_header);
-            tags_map[key].forEach(function(e) {
-              var tag_body = eol.concat('- ', '[', e.title, ']', '(', e.url, ')');
-              page.content = page.content.concat(tag_body);
-            })
-            page.content = page.content.concat(eol);
-          }
-        }
-        return page;
-      }
 
       // extract tags from page or YAML
       var rawtags = '';
@@ -96,6 +86,38 @@ module.exports = {
       page.content = page.content.replace(/(<div class="paragraph">)?\s*<p>tagsstop<\/p>\s*(<\/div>)?/, '</div><!-- tagsstop -->');
       page.content = page.content.replace('<strong>ADOCTAGS</strong>', '<i class="fa fa-tags" aria-hidden="true"></i> ');
       return page;
+    },
+
+    "finish": function() {
+      var content = '';
+
+      for (var key in tags_map) {
+        if (tags_map.hasOwnProperty(key)) {
+          var tag_header = eol.concat('## ', key, eol);
+          content = content.concat(tag_header);
+          tags_map[key].forEach(function(e) {
+            var tag_body = eol.concat('- ', '[', e.title, ']', '(', e.url, ')');
+            content = content.concat(tag_body);
+          })
+          content = content.concat(eol);
+        }
+      }
+
+      var output = this.output.resolve('tags.html');
+      var write = this.output.writeFile;
+      return this.book.renderBlock('markdown', content)
+        .then(function(rendered) {
+          var tagsHtml = fs.readFileSync(output);
+          return write('tags.html', tagsHtml
+            .toString('utf8')
+            .replace(
+              /.section class="normal markdown-section"(.|\n)*\/section./,
+              "<section class=\"normal markdown-section\">" +
+              "<h1>Тэги</h1>" +
+              rendered +
+              "</section>"
+            ));
+        });
     }
   }
 };
